@@ -1,0 +1,13 @@
+node_modules
+bot-profile
+.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+api_live_records.json
+api_submit_records.json
+api_submit_records_*.json
+benchmark_records_*.json
