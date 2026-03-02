@@ -29,5 +29,5 @@ echo [4/4] Cai Playwright Chrome...
 
 echo.
 echo [DONE] Cai dat xong.
-echo Chay bot: CLICK_TO_RUN_SUBMIT.bat
+echo Chay bot: clev.bat
 pause

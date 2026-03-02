@@ -1076,7 +1076,7 @@ class ProfilePreset:
 
 
 DEFAULT_FORM_URL = (
-    "https://docs.google.com/forms/d/e/1FAIpQLSczMXKG4wcJRj9_OvlmnKLrje5VFnT1q62zV8HbTiiyl8HZ4Q/viewform?usp=dialog"
+    "https://docs.google.com/forms/d/e/1FAIpQLSczXsxPX08gQt9Z9e-_-mJwvM8rcMbdHgtgI4EHkSV_aJ2IQQ/viewform"
 )
 DEFAULT_SO = "AnhNHT"
 DEFAULT_NOTE = "kvl"

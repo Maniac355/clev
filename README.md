@@ -37,6 +37,8 @@ Sao chép file `.env.example` thành `.env`.
 Các trường quan trọng:
 1. `CLEVAI_API_URL`: để nguyên `https://api.clevai.edu.vn/api/v1/so/meeting/search`
 2. `GOOGLE_FORM_URL`: link form cần submit
+   Mặc định hiện tại:
+   `https://docs.google.com/forms/d/e/1FAIpQLSczXsxPX08gQt9Z9e-_-mJwvM8rcMbdHgtgI4EHkSV_aJ2IQQ/viewform`
 3. `CLEVAI_BEARER_TOKEN`: token API (có thể để trống và nhập lúc chạy)
 4. `BOT_PROFILE_DIR`: để trống để dùng profile riêng ổn định
 
@@ -84,4 +86,4 @@ python clevai_form_bot.py login   # Mở browser để login profile Google
 ## 8. Chạy bằng click
 
 1. `INSTALL_WINDOWS.bat` (cài lần đầu)
-2. `CLICK_TO_RUN_SUBMIT.bat` (chạy hằng ngày)
+2. `clev.bat` (chạy hằng ngày)
