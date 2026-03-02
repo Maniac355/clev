@@ -41,6 +41,7 @@ Các trường quan trọng:
    `https://docs.google.com/forms/d/e/1FAIpQLSczXsxPX08gQt9Z9e-_-mJwvM8rcMbdHgtgI4EHkSV_aJ2IQQ/viewform`
 3. `CLEVAI_BEARER_TOKEN`: token API (có thể để trống và nhập lúc chạy)
 4. `BOT_PROFILE_DIR`: để trống để dùng profile riêng ổn định
+5. `FORM_EMAIL_DEFAULT`: chỉ điền nếu form của bạn cần bot gõ email trực tiếp
 
 ## 4. Luồng chạy chuẩn nhất
 
@@ -55,7 +56,6 @@ Bot sẽ hỏi lần lượt:
 4. `teacher_status` (`0`, `1`, `3`, hoặc `0,3`)
 5. Có submit luôn hay không (`y/n`)
 6. `Note` (mặc định `kvl`)
-7. Chọn profile theo số
 
 Kết quả:
 1. Dữ liệu fetch lưu vào `api_live_records.json` (ghi đè mỗi lần chạy).
@@ -67,7 +67,7 @@ Kết quả:
 ```bash
 python clevai_form_bot.py fetch   # Chỉ fetch API
 python clevai_form_bot.py submit  # Chỉ submit từ file JSON
-python clevai_form_bot.py login   # Mở browser để login profile Google
+python clevai_form_bot.py login   # Mở browser để login profile riêng của bot
 ```
 
 ## 6. Mapping field lên form

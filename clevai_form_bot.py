@@ -4,7 +4,7 @@
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 
@@ -844,11 +844,22 @@ def login_google_form(
         print("[LOGIN] Sign in to Google if needed, then press Enter here to continue...")
         input()
 
-        editable_fields = page.locator(
-            "input[type='text']:not([disabled]), textarea:not([disabled])"
-        ).count()
+        try:
+            if page.is_closed():
+                print("[LOGIN] Browser was closed manually. Login data may already be saved.")
+                editable_fields = 0
+            else:
+                editable_fields = page.locator(
+                    "input[type='text']:not([disabled]), textarea:not([disabled])"
+                ).count()
+        except Exception:
+            print("[LOGIN] Browser/page was already closed. Login data may already be saved.")
+            editable_fields = 0
 
-        context.close()
+        try:
+            context.close()
+        except Exception:
+            pass
         return editable_fields
 
 
@@ -1048,8 +1059,7 @@ import os
 import sys
 import time
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 from rich.progress import (
@@ -1066,13 +1076,6 @@ from rich.table import Table
 
 
 console = Console()
-
-
-@dataclass(frozen=True)
-class ProfilePreset:
-    profile_name: str
-    email: str
-    description: str
 
 
 DEFAULT_FORM_URL = (
@@ -1092,11 +1095,6 @@ def configure_stdio_utf8() -> None:
                 stream.reconfigure(encoding="utf-8")
             except Exception:
                 pass
-
-
-def chrome_user_data_dir() -> str:
-    local_app_data = os.getenv("LOCALAPPDATA") or ""
-    return os.path.join(local_app_data, "Google", "Chrome", "User Data")
 
 
 def default_bot_profile_dir() -> str:
@@ -1154,77 +1152,6 @@ def resolve_token() -> Optional[str]:
     return env_token or None
 
 
-def _profile_sort_key(profile_name: str) -> Tuple[int, int]:
-    lowered = profile_name.lower()
-    if lowered == "default":
-        return (0, 0)
-    if lowered.startswith("profile "):
-        try:
-            return (1, int(profile_name.split(" ", 1)[1]))
-        except Exception:
-            return (1, 9999)
-    return (2, 9999)
-
-
-def load_chrome_profiles(profile_dir: str) -> List[ProfilePreset]:
-    profile_base = Path(profile_dir)
-    local_state_path = profile_base / "Local State"
-    info_cache: Dict[str, Any] = {}
-
-    if local_state_path.exists():
-        try:
-            with local_state_path.open("r", encoding="utf-8") as file_obj:
-                local_state = json.load(file_obj)
-            cache_obj = (local_state.get("profile") or {}).get("info_cache") or {}
-            if isinstance(cache_obj, dict):
-                info_cache = cache_obj
-        except Exception:
-            info_cache = {}
-
-    presets: List[ProfilePreset] = []
-
-    if profile_base.exists():
-        for entry in profile_base.iterdir():
-            if not entry.is_dir():
-                continue
-            profile_name = entry.name
-            if profile_name != "Default" and not profile_name.startswith("Profile "):
-                continue
-            if not (entry / "Preferences").exists():
-                continue
-
-            cached = info_cache.get(profile_name) or {}
-            display_name = str(cached.get("name") or profile_name).strip() or profile_name
-            email = str(cached.get("user_name") or "").strip()
-            presets.append(ProfilePreset(profile_name, email, display_name))
-
-    if not presets:
-        for profile_name, raw in info_cache.items():
-            name = str(profile_name)
-            if name != "Default" and not name.startswith("Profile "):
-                continue
-            cached = raw or {}
-            display_name = str(cached.get("name") or name).strip() or name
-            email = str(cached.get("user_name") or "").strip()
-            presets.append(ProfilePreset(name, email, display_name))
-
-    if not presets:
-        return [ProfilePreset("Default", "", "Default")]
-
-    presets.sort(key=lambda item: _profile_sort_key(item.profile_name))
-    return presets
-
-
-def choose_profile(profile_dir: str) -> ProfilePreset:
-    presets = load_chrome_profiles(profile_dir)
-    console.print("Chọn profile:")
-    for idx, preset in enumerate(presets, start=1):
-        email_view = preset.email or "no-email"
-        console.print(f"  {idx}. {preset.profile_name} - {preset.description} ({email_view})")
-
-    choices = [str(i) for i in range(1, len(presets) + 1)]
-    picked = Prompt.ask("Số profile", choices=choices, default="1")
-    return presets[int(picked) - 1]
 
 
 def fetch_records(
@@ -1279,7 +1206,6 @@ def load_json_records(path: str) -> List[Dict[str, Any]]:
 
 
 def build_bot_config(
-    preset: ProfilePreset,
     form_url: str,
     profile_dir: str,
     headed: bool,
@@ -1287,15 +1213,12 @@ def build_bot_config(
 ) -> BotConfig:
     config = load_bot_config_from_env(
         note_text=note_text,
-        email_text=preset.email,
+        email_text=None,
         headless=not headed,
     )
     config.form_url = form_url.strip()
     config.user_data_dir = profile_dir.strip()
-
-    chrome_dir = os.path.abspath(chrome_user_data_dir())
-    run_dir = os.path.abspath(config.user_data_dir)
-    config.profile_directory = preset.profile_name.strip() if run_dir == chrome_dir else ""
+    config.profile_directory = ""
     config.browser_channel = "chrome"
     return config
 
@@ -1311,12 +1234,10 @@ def prompt_fetch_inputs() -> Tuple[str, str, Optional[str], List[str]]:
 
 def prompt_runtime_submit_config(note_text: str, headed: bool = False) -> BotConfig:
     form_url = (os.getenv("GOOGLE_FORM_URL") or DEFAULT_FORM_URL).strip()
-    preset = choose_profile(chrome_user_data_dir())
     profile_dir = (os.getenv("BOT_PROFILE_DIR") or default_bot_profile_dir()).strip()
     if not profile_dir:
         profile_dir = default_bot_profile_dir()
     return build_bot_config(
-        preset=preset,
         form_url=form_url,
         profile_dir=profile_dir,
         headed=headed,
@@ -1326,12 +1247,9 @@ def prompt_runtime_submit_config(note_text: str, headed: bool = False) -> BotCon
 
 def prompt_login_config() -> BotConfig:
     form_url = (os.getenv("GOOGLE_FORM_URL") or DEFAULT_FORM_URL).strip()
-    chrome_dir = chrome_user_data_dir()
-    preset = choose_profile(chrome_dir)
     return build_bot_config(
-        preset=preset,
         form_url=form_url,
-        profile_dir=chrome_dir,
+        profile_dir=default_bot_profile_dir(),
         headed=True,
         note_text=DEFAULT_NOTE,
     )
